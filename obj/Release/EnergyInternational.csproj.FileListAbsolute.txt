@@ -1,0 +1,8 @@
+c:\users\christian\documents\visual studio 2013\Projects\EnergyInternational\EnergyInternational\bin\Release\EnergyInternational.exe.config
+c:\users\christian\documents\visual studio 2013\Projects\EnergyInternational\EnergyInternational\bin\Release\EnergyInternational.exe
+c:\users\christian\documents\visual studio 2013\Projects\EnergyInternational\EnergyInternational\bin\Release\EnergyInternational.pdb
+c:\users\christian\documents\visual studio 2013\Projects\EnergyInternational\EnergyInternational\obj\Release\EnergyInternational.Form1.resources
+c:\users\christian\documents\visual studio 2013\Projects\EnergyInternational\EnergyInternational\obj\Release\EnergyInternational.Properties.Resources.resources
+c:\users\christian\documents\visual studio 2013\Projects\EnergyInternational\EnergyInternational\obj\Release\EnergyInternational.csproj.GenerateResource.Cache
+c:\users\christian\documents\visual studio 2013\Projects\EnergyInternational\EnergyInternational\obj\Release\EnergyInternational.exe
+c:\users\christian\documents\visual studio 2013\Projects\EnergyInternational\EnergyInternational\obj\Release\EnergyInternational.pdb
