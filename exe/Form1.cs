@@ -34,8 +34,8 @@ namespace EnergyInternational
             webBrowser1.IsWebBrowserContextMenuEnabled = false;
             webBrowser1.WebBrowserShortcutsEnabled = false;
             webBrowser1.ObjectForScripting = new ExternalInterface(this);
-
-            WebRequest req = WebRequest.Create("https://raw.githubusercontent.com/uuf6429/NRJ.hta/master/NRJ.hta?nocache");
+            
+            WebRequest req = WebRequest.Create("https://raw.githubusercontent.com/uuf6429/EnergyInternational/master/hta/NRJ.hta?nocache");
             req.Timeout = 10000;
             if (req.GetType() == typeof(HttpWebRequest)) (req as HttpWebRequest).CookieContainer = cookies;
             WebResponse rsp = req.GetResponse();
