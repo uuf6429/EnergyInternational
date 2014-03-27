@@ -157,8 +157,6 @@ $RECYCLE.BIN/
 
 
 
-
-
 # Remove all build data except one final exe
 exe/bin/*
 exe/obj/*
