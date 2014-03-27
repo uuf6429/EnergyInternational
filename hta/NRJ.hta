@@ -190,7 +190,7 @@
         <script type="text/javascript">
             window.stations = [];
             window.SongPollerUrl = null;
-            window.IsDebug = false;
+            window.IsDebug = true;
             
 			function WindowSize(w, h){
                 window.resizeTo(w, h);
@@ -489,7 +489,7 @@
                     }
                 });
 				
-				// drag window
+				// handle window dragging
 				var dragpos = null;
 				jQuery('#current').mousedown(function(event){
 					dragpos = {x: event.pageX, y: event.pageY};
@@ -502,11 +502,12 @@
 				jQuery(window).mouseup(function(){
 					dragpos = false;
 				});
+				
+				// initialize window
+				WindowRestore();
+				var pos = GetFavPosition();
+				WindowMove(pos.x, pos.y);
             });
-
-			var pos = GetFavPosition();
-            WindowSize(360, 160);
-			WindowMove(pos.x, pos.y);
         </script>
     </head>
     <body class="restored">
