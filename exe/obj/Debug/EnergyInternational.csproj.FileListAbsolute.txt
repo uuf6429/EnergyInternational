@@ -7,3 +7,6 @@ c:\users\christian\documents\visual studio 2013\Projects\EnergyInternational\Ene
 c:\users\christian\documents\visual studio 2013\Projects\EnergyInternational\EnergyInternational\obj\Debug\EnergyInternational.exe
 c:\users\christian\documents\visual studio 2013\Projects\EnergyInternational\EnergyInternational\obj\Debug\EnergyInternational.pdb
 c:\users\christian\documents\visual studio 2013\Projects\EnergyInternational\EnergyInternational\obj\Debug\EnergyInternational.Form1.resources
+C:\Users\Christian\Documents\GitHub\EnergyInternational\exe\bin\Debug\EnergyInternational.exe.config
+C:\Users\Christian\Documents\GitHub\EnergyInternational\exe\obj\Debug\EnergyInternational.exe
+C:\Users\Christian\Documents\GitHub\EnergyInternational\exe\obj\Debug\EnergyInternational.pdb
