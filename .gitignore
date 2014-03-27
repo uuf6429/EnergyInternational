@@ -159,5 +159,7 @@ $RECYCLE.BIN/
 
 
 
-# Keep one build exe
+# Remove all build data except one final exe
+exe/bin/*
+exe/obj/*
 !exe/bin/Release/EnergyInternational.exe
