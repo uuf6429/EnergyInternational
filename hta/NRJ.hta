@@ -7,6 +7,7 @@
         <title>Energy Radio</title>
         <style type="text/css">
             html, body {
+				cursor: default;
                 margin: 0;
                 padding: 0;
                 background: #1A1A1A;
@@ -470,7 +471,9 @@
                         window.external.DelCookie(name);
                     };
                 }
-				// context menu and text selection hotfix
+				
+				// dragging, context menu and text selection hotfix
+				document.ondragstart = function(){ return false; };
 				document.oncontextmenu = function(){ return false; };
 				document.onselectstart = function(){ return false; }; 
 				
