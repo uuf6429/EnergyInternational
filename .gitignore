@@ -154,10 +154,3 @@ $RECYCLE.BIN/
 
 # Mac desktop service store files
 .DS_Store
-
-
-
-# Remove all build data except one final exe
-exe/bin/*
-exe/obj/*
-!exe/bin/Release/EnergyInternational.exe
