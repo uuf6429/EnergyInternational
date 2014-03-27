@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.IO;
 using System.Net;
+using System.Net.Cache;
 using System.Windows.Forms;
 
 namespace EnergyInternational
@@ -31,12 +32,13 @@ namespace EnergyInternational
         protected void InitializePlayer()
         {
             webBrowser1.AllowWebBrowserDrop = false;
-            webBrowser1.IsWebBrowserContextMenuEnabled = false;
+            //webBrowser1.IsWebBrowserContextMenuEnabled = false;
             webBrowser1.WebBrowserShortcutsEnabled = false;
             webBrowser1.ObjectForScripting = new ExternalInterface(this);
             
             WebRequest req = WebRequest.Create("https://raw.githubusercontent.com/uuf6429/EnergyInternational/master/hta/NRJ.hta?nocache");
             req.Timeout = 10000;
+            req.CachePolicy = new HttpRequestCachePolicy(HttpRequestCacheLevel.NoCacheNoStore);
             if (req.GetType() == typeof(HttpWebRequest)) (req as HttpWebRequest).CookieContainer = cookies;
             WebResponse rsp = req.GetResponse();
             StreamReader reader = new StreamReader(rsp.GetResponseStream());
