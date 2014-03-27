@@ -154,3 +154,10 @@ $RECYCLE.BIN/
 
 # Mac desktop service store files
 .DS_Store
+
+
+
+
+
+# Keep one build exe
+!exe/bin/Release/EnergyInternational.exe

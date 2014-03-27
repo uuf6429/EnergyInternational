@@ -1,2 +1,0 @@
-exe/bin/*
-!exe/bin/Release/EnergyInternational.exe
