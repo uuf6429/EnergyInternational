@@ -55,5 +55,10 @@ namespace EnergyInternational
             Registry.CurrentUser.CreateSubKey("Software\\" + Application.ProductName, RegistryKeyPermissionCheck.ReadWriteSubTree)
                 .DeleteValue(name);
         }
+
+        public void Reload()
+        {
+            Form.TryConnect();
+        }
     }
 }

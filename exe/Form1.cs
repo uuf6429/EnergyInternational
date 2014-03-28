@@ -29,20 +29,82 @@ namespace EnergyInternational
             webBrowser1.DocumentText = html;
         }
 
+        protected void ShowError()
+        {
+            this.LoadHtml(@"<!DOCTYPE html>
+            <html>
+                <head>
+                    <meta http-equiv='x-ua-compatible' content='ie=9'/>
+                    <style type='text/css'>
+                        html, body {
+				            background: #1A1A1A;
+                            overflow: hidden;
+				            font: 13px Arial;
+                            padding: 0;
+                            margin: 0;
+                        }
+                        a, a:hover, a:visited {
+                            color: red;
+                            text-decoration: none;
+                            text-transform: uppercase;
+                        }
+                        div {
+                            border: 8px solid #C51B24;
+                            width: 48px;
+                            height: 48px;
+                            margin: 8px auto;
+                            color: #C51B24;
+                            font-size: 42px;
+                            text-align: center;
+                            line-height: 48px;
+                            border-radius: 128px;
+                            -ms-border-radius: 128px;
+                        }
+                        #close {
+                            position: absolute;
+                            top: 4px;
+                            right: 4px;
+                            background: #000;
+                            padding: 4px;
+                            font: 16px Arial;
+                            line-height: 10px;
+                        }
+                    </style>
+                </head>
+                <body>
+                    <div>!</div>
+                    <center>
+                        <a id='retry' href='javascript:window.external.Reload();'>Retry</a>
+                        <a id='close' href='javascript:window.external.Close();'>&times;</a>
+                    </center>
+                </body>
+            </html>");
+        }
+
+        public void TryConnect()
+        {
+            try
+            {
+                WebRequest req = WebRequest.Create("https://raw.githubusercontent.com/uuf6429/EnergyInternational/master/hta/NRJ.hta?nocache");
+                req.Timeout = 10000;
+                req.CachePolicy = new HttpRequestCachePolicy(HttpRequestCacheLevel.NoCacheNoStore);
+                if (req.GetType() == typeof(HttpWebRequest)) (req as HttpWebRequest).CookieContainer = cookies;
+                WebResponse rsp = req.GetResponse();
+                StreamReader reader = new StreamReader(rsp.GetResponseStream());
+                this.LoadHtml(reader.ReadToEnd());
+            }
+            catch (Exception)
+            {
+                this.ShowError();
+            }
+        }
+
         protected void InitializePlayer()
         {
             webBrowser1.AllowWebBrowserDrop = false;
-            //webBrowser1.IsWebBrowserContextMenuEnabled = false;
             webBrowser1.WebBrowserShortcutsEnabled = false;
             webBrowser1.ObjectForScripting = new ExternalInterface(this);
-            
-            WebRequest req = WebRequest.Create("https://raw.githubusercontent.com/uuf6429/EnergyInternational/master/hta/NRJ.hta?nocache");
-            req.Timeout = 10000;
-            req.CachePolicy = new HttpRequestCachePolicy(HttpRequestCacheLevel.NoCacheNoStore);
-            if (req.GetType() == typeof(HttpWebRequest)) (req as HttpWebRequest).CookieContainer = cookies;
-            WebResponse rsp = req.GetResponse();
-            StreamReader reader = new StreamReader(rsp.GetResponseStream());
-            this.LoadHtml(reader.ReadToEnd());
+            this.TryConnect();
             this.Show();
         }
 
