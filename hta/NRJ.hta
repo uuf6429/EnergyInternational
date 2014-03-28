@@ -189,7 +189,7 @@
 		<script src="http://cdnjs.cloudflare.com/ajax/libs/jquery-cookie/1.4.0/jquery.cookie.min.js"></script>
 		<script type="text/javascript">
 			window.stations = [];
-			window.SongPollerUrl = null;
+			window.SongPollerStationId = null;
 			window.IsDebug = true;
 			$window = jQuery(window);
 			
@@ -216,36 +216,55 @@
 				if(!window.IsDebug)return true;
 			};
 			
-			function SongPollerGetSong(data){ // returns: {title,image[url],start[js timestamp],length[msec]}
+			function SongPollerGetSong(stationId, data){ // returns: {title,image[url],start[js timestamp],length[msec]}
 				var findFirstProp = function(obj){
 					for(var name in obj)return name;
 				};
-				switch(true){
-					case typeof(data.title) !== "undefined":
-						//    NRJ RU
-						return {
-							title: data.title,
-							image: "http://www.energyfm.ru/design/images/12_logo_w.gif",
-							start: data.start * 1000,
-							length: data.duration * 1000
-						};
-					default:
-						//    NRJ DE
-						data = data[findFirstProp(data)];
-						if(!data.length)return null;
-						data = data.shift();
-						data.length = data.length.split(':');
-						return {
-							title: data.song + ' / ' + data.artist,
-							image: data.imageItems.image_50,
-							start: Date.parse(data.start.replace(/-/g, '/')),
-							length: (data.length.shift() * 60000) + (data.length.shift() * 1000)
-						};
+				if(window.stations[stationId].playlist){
+					switch(window.stations[stationId].country){
+						case "RU":
+							return {
+								title: data.title,
+								image: "http://www.energyfm.ru/design/images/12_logo_w.gif",
+								start: data.start * 1000,
+								length: data.duration * 1000
+							};
+						case "DE":
+							data = data[findFirstProp(data)];
+							if(!data.length)return null;
+							data = data.shift();
+							data.length = data.length.split(':');
+							return {
+								title: data.song + ' / ' + data.artist,
+								image: data.imageItems.image_50,
+								start: Date.parse(data.start.replace(/-/g, '/')),
+								length: (data.length.shift() * 60000) + (data.length.shift() * 1000)
+							};
+						case "AT":
+							return !data.songs.length ? null : {
+								title: jQuery.trim(data.songs[0].title + '/' + data.songs[0].interpret),
+								image: "http://www.energy.at/webradios/WebradioVer3/img/energy-online-logo.jpg",
+								start: (new Date()).getTime(),
+								length: data.songs[0].length * 1000
+							};
+						case "NO":
+							var song = data.ProgramInstance.Elements;
+							if(!song.length)return null;
+							song = song[song.length - 1];
+							return {
+								title: song.Title,
+								image: typeof song.Images=='object' ? song.Images.Url : '',
+								start: Date.parse(song.StartTime),
+								length: Date.parse(song.StopTime) - Date.parse(song.StartTime)
+							};
+					}
 				}
+				return null; // other playlist parsers are not supported
 			}
 			
-			function SongPollerProcess(data){
-				var song = SongPollerGetSong(window.eval("("+data.query.results.body.p+")"));
+			function SongPollerProcess(stationId, data){
+				data = data.query.results.json;
+				var song = SongPollerGetSong(stationId, data);
 				if(!song)return; // no songs :(
 				var dateNow = new Date().getTime();
 				var timeTillEnd = song.length - (dateNow - song.start);
@@ -288,19 +307,19 @@
 				
 				// schedule next playlist check
 				setTimeout(function(){
-					if(window.SongPollerUrl)SongPollerStart(window.SongPollerUrl);
+					if(window.SongPollerStationId)SongPollerStart(window.SongPollerStationId);
 				}, Math.max(timeTillEnd + 2000, 5000)); // add 2s to give it time to refresh and a minimum of 5s between updates
 			}
 			
-			function SongPollerStart(PollUrl){
-				var qry = encodeURIComponent('select * from html where url="' + PollUrl + '?nc=' + Math.round(Math.random() * 10000) + '"');
-				var url = 'http://query.yahooapis.com/v1/public/yql?q=' + qry + '&format=json&callback=SongPollerProcess';
+			function SongPollerStart(stationId){
+				window.SongPollerStationId = stationId;
+				var qry = encodeURIComponent('select * from json where url="' + window.stations[stationId].playlist + '?nc=' + Math.round(Math.random() * 10000) + '"');
+				var url = 'http://query.yahooapis.com/v1/public/yql?q=' + qry + '&format=json&callback=SongPollerProcess' + stationId;
 				jQuery('body').append('<' + 'script src="' + url + '"><' + '/script>');
-				window.SongPollerUrl = PollUrl;
 			}
 			
 			function SongPollerStop(){
-				window.SongPollerUrl = null;
+				window.SongPollerStationId = null;
 			}
 			
 			function SetFavStation(id){
@@ -354,6 +373,7 @@
 				window.stations = ProcessSpreadsheet(data);
 				var stations = jQuery('#stations');
 				for (var i = 0; i < window.stations.length; i++) {
+					(function(c){ window['SongPollerProcess' + c] = function(r){ SongPollerProcess(c, r); }; })(i);
 					var entry = window.stations[i];
 					if (entry.stream) {
 						var li = jQuery('<li/>').attr({'data-sid':i,'id':'station'+i});
@@ -410,13 +430,14 @@
 				jQuery('#plimage').remove();
 				// refresh playlist
 				SongPollerStop();
-				if(entry.playlist)SongPollerStart(entry.playlist);
+				if(entry.playlist)SongPollerStart(id);
 			}
 			
 			function StopStreams(){
 				jQuery('a.pp').hide();
 				jQuery('a.pn').show();
 				jQuery('#player').remove();
+				jQuery('#progress').stop(true).css('width', '100%');
 			}
 			
 			var OrigPos = {x: 0, y: 0};
@@ -460,7 +481,7 @@
 			
 			jQuery(document).ready(function () {
 				// cookie hotfix
-				if(typeof window.external !== 'undefined'){
+				if(typeof window.external !== 'undefined' && typeof window.external.GetCookie !== 'undefined'){
 					jQuery.cookie = function(name, value){
 						if(typeof value === 'undefined'){
 							return window.external.GetCookie(name);
@@ -479,6 +500,7 @@
 				document.onselectstart = function(){ return false; }; 
 				
 				// load stations spreadsheet
+				// https://docs.google.com/spreadsheet/ccc?key=0Ap5dCq9Q9VDJdG1fTXFSaGpqaGg1eEYxZjFxUVhFSmc
 				var key = '0Ap5dCq9Q9VDJdG1fTXFSaGpqaGg1eEYxZjFxUVhFSmc';
 				var qry = '?alt=json-in-script&callback=LoadStations';
 				var url = 'https://spreadsheets.google.com/feeds/cells/' + key + '/od6/public/basic' + qry;
