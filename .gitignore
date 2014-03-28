@@ -154,3 +154,13 @@ $RECYCLE.BIN/
 
 # Mac desktop service store files
 .DS_Store
+
+
+# Allow build output
+!exe/
+!exe/bin/
+!exe/bin/Release/
+!exe/bin/Release/*
+exe/bin/Release/*.exe.config
+exe/bin/Release/*.pdb
+exe/bin/Release/*.vshost.*
