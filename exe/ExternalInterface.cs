@@ -56,6 +56,11 @@ namespace EnergyInternational
                 .DeleteValue(name);
         }
 
+        public void SetTitle(String title)
+        {
+            Form.Text = title;
+        }
+
         public void Reload()
         {
             Form.TryConnect();

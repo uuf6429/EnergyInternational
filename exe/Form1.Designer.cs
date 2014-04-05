@@ -69,6 +69,7 @@
             this.ShowInTaskbar = false;
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
             this.Text = "Energy International";
+            this.TextChanged += new System.EventHandler(this.Form1_TextChanged);
             this.ResumeLayout(false);
 
         }

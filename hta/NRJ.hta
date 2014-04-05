@@ -191,7 +191,13 @@
 			window.stations = [];
 			window.SongPollerStationId = null;
 			window.IsDebug = true;
+			window.setTitle = function(t){ document.title = t; };
+			window.lastTime = null;
 			$window = jQuery(window);
+			
+			function WindowTitle(t){
+				window.setTitle(t);
+			}
 			
 			function WindowSize(w, h){
 				window.resizeTo(w, h);
@@ -287,6 +293,7 @@
 				
 				// update playlist items
 				var text = SafeHtmlDecode(song.title) + ' ';
+				WindowTitle(text + ' - NRJ Radio');
 				jQuery('#playlist').html(
 					jQuery('<a target="_blank"/>').text(text).attr('href', 'https://encrypted.google.com/#q=' + encodeURIComponent(text))
 				);
@@ -306,8 +313,10 @@
 					});    // schedule duration animation
 				
 				// schedule next playlist check
-				setTimeout(function(){
+				if(window.lastTime)clearTimeout(window.lastTime);
+				window.lastTime = setTimeout(function(){
 					if(window.SongPollerStationId)SongPollerStart(window.SongPollerStationId);
+					window.lastTime = null;
 				}, Math.max(timeTillEnd + 2000, 5000)); // add 2s to give it time to refresh and a minimum of 5s between updates
 			}
 			

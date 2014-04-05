@@ -26,6 +26,7 @@ namespace EnergyInternational
             html = html.Replace("window.close(", "window.external.Close(");
             html = html.Replace("window.resizeTo(", "window.external.Resize(");
             html = html.Replace("window.moveTo(", "window.external.Move(");
+            html = html.Replace("window.setTitle(", "window.external.SetTitle(");
             webBrowser1.DocumentText = html;
         }
 
@@ -114,6 +115,11 @@ namespace EnergyInternational
             this.Focus();
             this.BringToFront();
             this.TopMost = false;
+        }
+
+        private void Form1_TextChanged(object sender, EventArgs e)
+        {
+            notifyIcon1.Text = this.Text;
         }
     }
 }
