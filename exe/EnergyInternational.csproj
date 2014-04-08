@@ -102,7 +102,6 @@
     <None Include="App.config" />
   </ItemGroup>
   <ItemGroup>
-    <Content Include="Energy Bremen.ico" />
     <Content Include="NRJ.ico" />
   </ItemGroup>
   <ItemGroup>
