@@ -19,7 +19,7 @@
 				cursor: default;
 			}
 			#current {
-				margin-bottom: 4px 10px;
+				margin-bottom: 4px;
 				padding: 10px;
 				background: #C51B24;
 				height: 32px;
@@ -195,6 +195,12 @@
 			window.lastTime = null;
 			$window = jQuery(window);
 			
+			var searchProviders = [
+				{ title: 'Spotify', icon: 'https://www.spotify.com/favicon.ico', uri: 'spotify:search:%search%' },
+				{ title: 'Google',  icon: 'http://www.google.com/favicon.ico',   uri: 'https://encrypted.google.com/#q=%search%' },
+				{ title: 'YouTube', icon: 'http://www.youtube.com/favicon.ico',  uri: 'http://www.youtube.com/results?search_query=%search%' }
+			];
+			
 			function WindowTitle(t){
 				window.setTitle(t);
 			}
@@ -259,13 +265,28 @@
 							song = song[song.length - 1];
 							return {
 								title: song.Title,
-								image: typeof song.Images=='object' ? song.Images.Url : '',
+								image: (typeof song.Images === 'object') ? song.Images.Url : '',
 								start: Date.parse(song.StartTime),
 								length: Date.parse(song.StopTime) - Date.parse(song.StartTime)
 							};
 					}
 				}
 				return null; // other playlist parsers are not supported
+			}
+			
+			function SetFavSearchProvider(id){
+				jQuery('a.fsp').removeClass('active');
+				if(id !== -1){
+					jQuery('a.fsp:eq(' + id + ')').addClass('active');
+					jQuery.cookie("favsearch", id, { expires : 30 });
+				}else{
+					jQuery.removeCookie("favsearch");
+				}
+			}
+			
+			function GetFavSearchProvider(){
+				var val = jQuery.cookie("favsearch") * 1;
+				return searchProviders[typeof searchProviders[val] === 'undefined' ? 0 : val];
 			}
 			
 			function SongPollerProcess(stationId, data){
@@ -295,7 +316,8 @@
 				var text = SafeHtmlDecode(song.title) + ' ';
 				WindowTitle(((text.length > 40) ? (text.substr(0, 40) + '\u2026') : text ) + ' - NRJ Radio');
 				jQuery('#playlist').html(
-					jQuery('<a target="_blank"/>').text(text).attr('href', 'https://encrypted.google.com/#q=' + encodeURIComponent(text))
+					jQuery('<a target="_blank"/>').text(text)
+						.attr('href', GetFavSearchProvider().url.replace('%search%', encodeURIComponent(text)))
 				);
 				
 				// update playlist image
@@ -333,7 +355,7 @@
 			
 			function SetFavStation(id){
 				jQuery('a.fs').removeClass('active');
-				if(id != -1){
+				if(id !== -1){
 					jQuery('#station'+id+' a.fs').addClass('active');
 					jQuery.cookie("favradio", window.stations[id].name, { expires : 30 });
 				}else{
@@ -347,7 +369,7 @@
 			
 			function GetFavPosition(){
 				var p = jQuery.cookie("favpostn");
-				if(p && (p = p.split(',')).length == 2)
+				if(p && (p = p.split(',')).length === 2)
 					return {x: (p[0] * 1), y: (p[1] * 1)};
 				return {x: window.screenX, y: window.screenY};
 			}
@@ -373,7 +395,7 @@
 			
 			function GetStationId(name){
 				for (var i = 0; i < window.stations.length; i++)
-					if(window.stations[i].name == name)
+					if(window.stations[i].name === name)
 						return i;
 				return -1;
 			}
@@ -418,7 +440,7 @@
 				}
 				// play favourite station
 				var fav = GetStationId(GetFavStation());
-				if(fav != -1){
+				if(fav !== -1){
 					PlayStream(fav);
 					SetFavStation(fav);
 				}
