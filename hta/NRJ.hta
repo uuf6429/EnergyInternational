@@ -196,9 +196,9 @@
 			$window = jQuery(window);
 			
 			var searchProviders = [
-				{ title: 'Spotify', icon: 'https://www.spotify.com/favicon.ico', uri: 'spotify:search:%search%' },
-				{ title: 'Google',  icon: 'http://www.google.com/favicon.ico',   uri: 'https://encrypted.google.com/#q=%search%' },
-				{ title: 'YouTube', icon: 'http://www.youtube.com/favicon.ico',  uri: 'http://www.youtube.com/results?search_query=%search%' }
+				//{ title: 'Spotify', icon: 'https://www.spotify.com/favicon.ico', url: 'spotify:search:%search%', popup: false },
+				{ title: 'Google',  icon: 'http://www.google.com/favicon.ico',   url: 'https://encrypted.google.com/#q=%search%', popup: true },
+				{ title: 'YouTube', icon: 'http://www.youtube.com/favicon.ico',  url: 'http://www.youtube.com/results?search_query=%search%', popup: true }
 			];
 			
 			function WindowTitle(t){
@@ -316,7 +316,9 @@
 				var text = SafeHtmlDecode(song.title) + ' ';
 				WindowTitle(((text.length > 40) ? (text.substr(0, 40) + '\u2026') : text ) + ' - NRJ Radio');
 				jQuery('#playlist').html(
-					jQuery('<a target="_blank"/>').text(text)
+					jQuery('<a/>')
+						.text(text)
+						.attr('target', GetFavSearchProvider().popup ? '_blank' : '_self')
 						.attr('href', GetFavSearchProvider().url.replace('%search%', encodeURIComponent(text)))
 				);
 				
