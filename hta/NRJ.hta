@@ -129,13 +129,15 @@
 			#nowtitle {
 				color: #FAA;
 			}
-			#playlist {
-				margin-top: 4px;
-				display: block;
-				overflow: hidden;
-				white-space: nowrap;
-				text-overflow: ellipsis;
-			}
+            #playlist {
+                margin-top: 4px;
+                display: block;
+                overflow: hidden;
+                white-space: nowrap;
+                -ms-text-overflow: ellipsis;
+                -o-text-overflow: ellipsis;
+                text-overflow: ellipsis;
+            }
 			#playlist a {
 				color: #FFF;
 				height: 15px;
@@ -188,387 +190,393 @@
 		<script src="http://cdnjs.cloudflare.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
 		<script src="http://cdnjs.cloudflare.com/ajax/libs/jquery-cookie/1.4.0/jquery.cookie.min.js"></script>
 		<script type="text/javascript">
-			window.stations = [];
-			window.SongPollerStationId = null;
-			window.IsDebug = true;
-			window.setTitle = function(t){ document.title = t; };
-			window.lastTime = null;
-			$window = jQuery(window);
-			
-			var searchProviders = [
-				//{ title: 'Spotify', icon: 'https://www.spotify.com/favicon.ico', url: 'spotify:search:%search%', popup: false },
-				{ title: 'Google',  icon: 'http://www.google.com/favicon.ico',   url: 'https://encrypted.google.com/#q=%search%', popup: true },
-				{ title: 'YouTube', icon: 'http://www.youtube.com/favicon.ico',  url: 'http://www.youtube.com/results?search_query=%search%', popup: true }
-			];
-			
-			function WindowTitle(t){
-				window.setTitle(t);
-			}
-			
-			function WindowSize(w, h){
-				window.resizeTo(w, h);
-			}
-			
-			function WindowMove(x, y){
-				var b = 2;
-				window.moveTo(
+		    window.stations = [];
+		    window.SongPollerStationId = null;
+		    window.IsDebug = true;
+		    window.setTitle = function (t) { document.title = t; };
+		    window.lastTime = null;
+		    $window = jQuery(window);
+
+		    var searchProviders = [
+				{ title: 'Spotify', icon: 'https://www.spotify.com/favicon.ico', url: 'spotify:search:%search%', popup: false },
+				{ title: 'Google', icon: 'http://www.google.com/favicon.ico', url: 'https://encrypted.google.com/#q=%search%', popup: true },
+				{ title: 'YouTube', icon: 'http://www.youtube.com/favicon.ico', url: 'http://www.youtube.com/results?search_query=%search%', popup: true }
+		    ];
+
+		    function WindowTitle(t) {
+		        window.setTitle(t);
+		    }
+
+		    function WindowSize(w, h) {
+		        window.resizeTo(w, h);
+		    }
+
+		    function WindowMove(x, y) {
+		        var b = 2;
+		        window.moveTo(
 					Math.max(Math.min(x, screen.availWidth - $window.width() - b), b),
 					Math.max(Math.min(y, screen.availHeight - $window.height() - b), b)
 				);
-			}
-			
-			function WindowClose(){
-				SetFavPosition(window.screenX, window.screenY);
-				window.close();
-			}
-			
-			window.SongPollerProcessCount = 0;
-			
-			window.onerror = function() {
-				if(!window.IsDebug)return true;
-			};
-			
-			function SongPollerGetSong(stationId, data){ // returns: {title,image[url],start[js timestamp],length[msec]}
-				var findFirstProp = function(obj){
-					for(var name in obj)return name;
-				};
-				if(window.stations[stationId].playlist){
-					switch(window.stations[stationId].country){
-						case "RU":
-							return {
-								title: data.title,
-								image: "http://www.energyfm.ru/design/images/12_logo_w.gif",
-								start: data.start * 1000,
-								length: data.duration * 1000
-							};
-						case "DE":
-							data = data[findFirstProp(data)];
-							if(!data.length)return null;
-							data = data.shift();
-							data.length = data.length.split(':');
-							return {
-								title: data.song + ' / ' + data.artist,
-								image: data.imageItems.image_50,
-								start: Date.parse(data.start.replace(/-/g, '/')),
-								length: (data.length.shift() * 60000) + (data.length.shift() * 1000)
-							};
-						case "AT":
-							return !data.songs.length ? null : {
-								title: jQuery.trim(data.songs[0].title + '/' + data.songs[0].interpret),
-								image: "http://www.energy.at/webradios/WebradioVer3/img/energy-online-logo.jpg",
-								start: (new Date()).getTime(),
-								length: data.songs[0].length * 1000
-							};
-						case "NO":
-							var song = data.ProgramInstance.Elements;
-							if(!song.length)return null;
-							song = song[song.length - 1];
-							return {
-								title: song.Title,
-								image: (typeof song.Images === 'object') ? song.Images.Url : '',
-								start: Date.parse(song.StartTime),
-								length: Date.parse(song.StopTime) - Date.parse(song.StartTime)
-							};
-					}
-				}
-				return null; // other playlist parsers are not supported
-			}
-			
-			function SetFavSearchProvider(id){
-				jQuery('a.fsp').removeClass('active');
-				if(id !== -1){
-					jQuery('a.fsp:eq(' + id + ')').addClass('active');
-					jQuery.cookie("favsearch", id, { expires : 30 });
-				}else{
-					jQuery.removeCookie("favsearch");
-				}
-			}
-			
-			function GetFavSearchProvider(){
-				var val = jQuery.cookie("favsearch") * 1;
-				return searchProviders[typeof searchProviders[val] === 'undefined' ? 0 : val];
-			}
-			
-			function SongPollerProcess(stationId, data){
-				data = data.query.results.json;
-				var song = SongPollerGetSong(stationId, data);
-				if(!song)return; // no songs :(
-				var dateNow = new Date().getTime();
-				var timeTillEnd = song.length - (dateNow - song.start);
-				var progress = (dateNow - song.start) / song.length * 100;
-				
-				////////////////////// debug //////////////////////
-				window.SongPollerProcessCount++;
-				if(window.IsDebug){
-					jQuery('#debug').html(''
-						+ '<tr><td>Start</td><td>'+song.start+'</td></tr>'
-						+ '<tr><td>Now</td><td>'+dateNow+' (passed '+(dateNow - song.start)+')</td></tr>'
-						+ '<tr><td>Length</td><td>'+song.length+' ('+'TODO:TODO'+')</td></tr>'
-						+ '<tr><td>End</td><td>'+timeTillEnd+'</td></tr>'
+		    }
+
+		    function WindowClose() {
+		        SetFavPosition(window.screenX, window.screenY);
+		        window.close();
+		    }
+
+		    window.SongPollerProcessCount = 0;
+
+		    window.onerror = function () {
+		        if (!window.IsDebug) return true;
+		    };
+
+		    function SongPollerGetSong(stationId, data) { // returns: {title,image[url],start[js timestamp],length[msec]}
+		        var findFirstProp = function (obj) {
+		            for (var name in obj) return name;
+		        };
+		        if (window.stations[stationId].playlist) {
+		            switch (window.stations[stationId].country) {
+		                case "RU":
+		                    return {
+		                        title: data.title,
+		                        image: "http://www.energyfm.ru/design/images/12_logo_w.gif",
+		                        start: data.start * 1000,
+		                        length: data.duration * 1000
+		                    };
+		                case "DE":
+		                    if (!data.length) return null;
+		                    data.length = data.length.split(':');
+		                    if (typeof data.start_time != 'undefined') data.start = data.start_time;
+		                    return {
+		                        title: data.song + ' / ' + data.artist,
+		                        image: data.imageItems.image_50,
+		                        start: Date.parse(data.start.replace(/-/g, '/')),
+		                        length: (data.length.shift() * 60000) + (data.length.shift() * 1000)
+		                    };
+		                case "AT":
+		                    return !data.songs.length ? null : {
+		                        title: jQuery.trim(data.songs[0].title + '/' + data.songs[0].interpret),
+		                        image: "http://www.energy.at/webradios/WebradioVer3/img/energy-online-logo.jpg",
+		                        start: (new Date()).getTime(),
+		                        length: data.songs[0].length * 1000
+		                    };
+		                case "NO":
+		                    var song = data.ProgramInstance.Elements;
+		                    if (!song.length) return null;
+		                    song = song[song.length - 1];
+		                    return {
+		                        title: song.Title,
+		                        image: (typeof song.Images === 'object') ? song.Images.Url : '',
+		                        start: Date.parse(song.StartTime),
+		                        length: Date.parse(song.StopTime) - Date.parse(song.StartTime)
+		                    };
+		            }
+		        }
+		        return null; // other playlist parsers are not supported
+		    }
+
+		    function SetFavSearchProvider(id) {
+		        jQuery('a.fsp').removeClass('active');
+		        if (id !== -1) {
+		            jQuery('a.fsp:eq(' + id + ')').addClass('active');
+		            jQuery.cookie("favsearch", id, { expires: 30 });
+		        } else {
+		            jQuery.removeCookie("favsearch");
+		        }
+		    }
+
+		    function GetFavSearchProvider() {
+		        var val = jQuery.cookie("favsearch") * 1;
+		        return searchProviders[typeof searchProviders[val] === 'undefined' ? 0 : val];
+		    }
+
+		    function SongPollerProcess(stationId, data) {
+		        console.log(data);
+		        if (!data.query.results) return; // no p/list
+		        data = data.query.results.Response.Item;
+		        var song = SongPollerGetSong(stationId, data);
+		        if (!song) return; // no songs :(
+		        var dateNow = new Date().getTime();
+		        var timeTillEnd = song.length - (dateNow - song.start);
+		        var progress = (dateNow - song.start) / song.length * 100;
+
+		        ////////////////////// debug //////////////////////
+		        window.SongPollerProcessCount++;
+		        if (window.IsDebug) {
+		            jQuery('#debug').html(''
+						+ '<tr><td>Start</td><td>' + song.start + '</td></tr>'
+						+ '<tr><td>Now</td><td>' + dateNow + ' (passed ' + (dateNow - song.start) + ')</td></tr>'
+						+ '<tr><td>Length</td><td>' + song.length + ' (' + 'TODO:TODO' + ')</td></tr>'
+						+ '<tr><td>End</td><td>' + timeTillEnd + '</td></tr>'
 						+ '<tr><td>Progress</td><td><span id="debugprogress"/>%</td></tr>'
-						+ '<tr><td>Counter</td><td>'+window.SongPollerProcessCount+'</td></tr>'
+						+ '<tr><td>Counter</td><td>' + window.SongPollerProcessCount + '</td></tr>'
 						+ '<tr><td>MS/D</td><td><span id="debugmousedrag"/></td></tr>'
 					);
-				}
-				////////////////////// debug //////////////////////
-				
-				// update playlist items
-				var text = SafeHtmlDecode(song.title) + ' ';
-				WindowTitle(((text.length > 40) ? (text.substr(0, 40) + '\u2026') : text ) + ' - NRJ Radio');
-				jQuery('#playlist').html(
+		        }
+		        ////////////////////// debug //////////////////////
+
+		        // update playlist items
+		        var text = SafeHtmlDecode(song.title) + ' ';
+		        WindowTitle(((text.length > 40) ? (text.substr(0, 40) + '\u2026') : text) + ' - NRJ Radio');
+		        jQuery('#playlist').html(
 					jQuery('<a/>')
 						.text(text)
 						.attr('target', GetFavSearchProvider().popup ? '_blank' : '_self')
 						.attr('href', GetFavSearchProvider().url.replace('%search%', encodeURIComponent(text)))
 				);
-				
-				// update playlist image
-				jQuery('#plimage').remove();
-				jQuery('#current').prepend(jQuery('<img id="plimage"/>').attr('src', song.image));
-				
-				// update song progress
-				jQuery('#progress')
+
+		        // update playlist image
+		        jQuery('#plimage').remove();
+		        jQuery('#current').prepend(jQuery('<img id="plimage"/>').attr('src', song.image));
+
+		        // update song progress
+		        jQuery('#progress')
 					.stop(true)                                                    // stop existing animations
-					.animate({'width': progress + '%'}, 'fast')                    // set up current position
-					.animate({width: '100%'}, {duration:timeTillEnd
-				////////////////////// debug //////////////////////
-						,step:function(pos){ if(window.IsDebug)document.getElementById('debugprogress').innerHTML = Math.round(pos * 1000) / 1000; }
-				////////////////////// debug //////////////////////
+					.animate({ 'width': progress + '%' }, 'fast')                    // set up current position
+					.animate({ width: '100%' }, {
+					    duration: timeTillEnd
+					    ////////////////////// debug //////////////////////
+						, step: function (pos) { if (window.IsDebug) document.getElementById('debugprogress').innerHTML = Math.round(pos * 1000) / 1000; }
+					    ////////////////////// debug //////////////////////
 					});    // schedule duration animation
-				
-				// schedule next playlist check
-				if(window.lastTime)clearTimeout(window.lastTime);
-				window.lastTime = setTimeout(function(){
-					if(window.SongPollerStationId)SongPollerStart(window.SongPollerStationId);
-					window.lastTime = null;
-				}, Math.max(timeTillEnd + 2000, 5000)); // add 2s to give it time to refresh and a minimum of 5s between updates
-			}
-			
-			function SongPollerStart(stationId){
-				window.SongPollerStationId = stationId;
-				var qry = encodeURIComponent('select * from json where url="' + window.stations[stationId].playlist + '?nc=' + Math.round(Math.random() * 10000) + '"');
-				var url = 'http://query.yahooapis.com/v1/public/yql?q=' + qry + '&format=json&callback=SongPollerProcess' + stationId;
-				jQuery('body').append('<' + 'script src="' + url + '"><' + '/script>');
-			}
-			
-			function SongPollerStop(){
-				window.SongPollerStationId = null;
-			}
-			
-			function SetFavStation(id){
-				jQuery('a.fs').removeClass('active');
-				if(id !== -1){
-					jQuery('#station'+id+' a.fs').addClass('active');
-					jQuery.cookie("favradio", window.stations[id].name, { expires : 30 });
-				}else{
-					jQuery.removeCookie("favradio");
-				}
-			}
-			
-			function GetFavStation(){
-				return jQuery.cookie("favradio");
-			}
-			
-			function GetFavPosition(){
-				var p = jQuery.cookie("favpostn");
-				if(p && (p = p.split(',')).length === 2)
-					return {x: (p[0] * 1), y: (p[1] * 1)};
-				return {x: window.screenX, y: window.screenY};
-			}
-			
-			function SetFavPosition(x, y){
-				jQuery.cookie("favpostn", x + ',' + y, { expires : 30 });
-			}
-			
-			function ProcessSpreadsheet(data) {
-				var cols = ["name","country","website","social","stream","playlist"];
-				var rows = data.feed.entry.length / cols.length;
-				var result = [];
-				for (var row = 1; row < rows; row++) {
-					var obj = {};
-					for (var col = 0; col < cols.length; col++) {
-						obj[cols[col]] = data.feed.entry[(row * cols.length) + col].content.$t;
-						if(obj[cols[col]] === " ")obj[cols[col]] = "";
-					}
-					result.push(obj);
-				}
-				return result;
-			}
-			
-			function GetStationId(name){
-				for (var i = 0; i < window.stations.length; i++)
-					if(window.stations[i].name === name)
-						return i;
-				return -1;
-			}
-			
-			function LoadStations(data) {
-				window.stations = ProcessSpreadsheet(data);
-				var stations = jQuery('#stations');
-				for (var i = 0; i < window.stations.length; i++) {
-					(function(c){ window['SongPollerProcess' + c] = function(r){ SongPollerProcess(c, r); }; })(i);
-					var entry = window.stations[i];
-					if (entry.stream) {
-						var li = jQuery('<li/>').attr({'data-sid':i,'id':'station'+i});
-						
-						li.append(jQuery('<span/>').text(SafeHtmlDecode(entry.name)));
-						
-						li.append(jQuery('<a target="_blank" class="fs">&#9733;</a>').attr("href", '#').click(function (e) {
-							e.preventDefault();
-							SetFavStation(jQuery(this).parents('li:first').attr('data-sid') * 1);
-						}));
-						
-						if (entry.website)
-							li.append(jQuery('<a target="_blank" class="ws"/>').attr("href", entry.website));
-						
-						if (entry.social){
-							var a = jQuery('<a target="_blank" class="sn"/>').attr("href", entry.social);
-							a.css('background-image', 'url("http://' + a[0].hostname + '/favicon.ico")');
-							li.append(a);
-						}
-						
-						li.append(jQuery('<a class="pn">&#x25B6;</a>').attr("href", entry.stream).click(function (e) {
-							e.preventDefault();
-							PlayStream(jQuery(this).parents('li:first').attr('data-sid') * 1);
-						}));
-						
-						li.append(jQuery('<a class="pp">&#x25A0;</a>').attr("href", entry.stream).click(function (e) {
-							e.preventDefault();
-							StopStreams();
-						}));
-						
-						stations.append(li);
-					}
-				}
-				// play favourite station
-				var fav = GetStationId(GetFavStation());
-				if(fav !== -1){
-					PlayStream(fav);
-					SetFavStation(fav);
-				}
-			}
-			
-			function PlayStream(id) {
-				var entry = window.stations[id];
-				StopStreams();
-				// switch button to stop
-				jQuery('#station'+id+' a.pp').show();
-				jQuery('#station'+id+' a.pn').hide();
-				// reset title
-				jQuery('#nowradio').text(entry.name);
-				// reset player
-				jQuery('#current').append(jQuery('<audio id="player" autoplay/>').attr('src', entry.stream));
-				// reset playlist
-				jQuery('#playlist').html('&hellip;');
-				jQuery('#plimage').remove();
-				// refresh playlist
-				SongPollerStop();
-				if(entry.playlist)SongPollerStart(id);
-			}
-			
-			function StopStreams(){
-				jQuery('a.pp').hide();
-				jQuery('a.pn').show();
-				jQuery('#player').remove();
-				jQuery('#progress').stop(true).css('width', '100%');
-			}
-			
-			var OrigPos = {x: 0, y: 0};
-			
-			function WindowMinimize(){
-				OrigPos = {x: window.screenX, y: window.screenY};
-				WindowSize(360, 52);
-				WindowMove(screen.availWidth, screen.availHeight);
-				jQuery('body').addClass('minimized');
-				jQuery('body').removeClass('restored');
-			}
-			
-			function WindowRestore(){
-				WindowSize(360, 230);
-				WindowMove(OrigPos.x, OrigPos.y);
-				jQuery('body').removeClass('minimized');
-				jQuery('body').addClass('restored');
-			}
-			
-			function WindowToggle(){
-				window[jQuery('body.minimized').length ? 'WindowRestore' : 'WindowMinimize']();
-			}
-			
-			function SafeHtmlDecode(html){
-				var txt = document.createElement("textarea");
-				txt.innerHTML = html;
-				return txt.value;
-			}
-			
-			function ShowWarning(name){
-				jQuery('#warning-' + name).show();
-			}
-			
-			function HideWarning(name){
-				jQuery('#warning-' + name).hide();
-			}
-			
-			function HideWarnings(){
-				jQuery('.warning').hide();
-			}
-			
-			jQuery(document).ready(function () {
-				// cookie hotfix
-				if(typeof window.external !== 'undefined' && typeof window.external.GetCookie !== 'undefined'){
-					jQuery.cookie = function(name, value){
-						if(typeof value === 'undefined'){
-							return window.external.GetCookie(name);
-						}else{
-							window.external.SetCookie(name, value);
-						}
-					};
-					jQuery.removeCookie = function(name){
-						window.external.DelCookie(name);
-					};
-				}
-				
-				// dragging, context menu and text selection hotfix
-				document.ondragstart = function(){ return false; };
-				document.oncontextmenu = function(){ return false; };
-				document.onselectstart = function(){ return false; }; 
-				
-				// load stations spreadsheet
-				// https://docs.google.com/spreadsheet/ccc?key=0Ap5dCq9Q9VDJdG1fTXFSaGpqaGg1eEYxZjFxUVhFSmc
-				var key = '0Ap5dCq9Q9VDJdG1fTXFSaGpqaGg1eEYxZjFxUVhFSmc';
-				var qry = '?alt=json-in-script&callback=LoadStations';
-				var url = 'https://spreadsheets.google.com/feeds/cells/' + key + '/od6/public/basic' + qry;
-				jQuery('body').append('<' + 'script src="' + url + '"><' + '/script>');
-				
-				// error suppressor (enabled when debug is disabled)
-				jQuery(document).keypress(function(e){
-					if (e.charCode === 100) {
-						window.IsDebug = !window.IsDebug;
-						jQuery('#debug')[window.IsDebug ? 'show' : 'hide']();
-					}
-				});
-				
-				// handle window dragging
-				var dragpos = null;
-				jQuery('#current').mousedown(function(event){
-					dragpos = {x: event.pageX, y: event.pageY};
-				});
-				jQuery(document).mousemove(function(event){
-					if(dragpos){
-						WindowMove(
+
+		        // schedule next playlist check
+		        if (window.lastTime) clearTimeout(window.lastTime);
+		        window.lastTime = setTimeout(function () {
+		            if (window.SongPollerStationId) SongPollerStart(window.SongPollerStationId);
+		            window.lastTime = null;
+		        }, Math.max(timeTillEnd + 2000, 5000)); // add 2s to give it time to refresh and a minimum of 5s between updates
+		    }
+
+		    function SongPollerStart(stationId) {
+		        window.SongPollerStationId = stationId;
+		        var pst = window.stations[stationId].playlist;
+		        pst += pst.indexOf("?") == -1 ? "?" : "&";          // add the correct delimiter
+		        pst += 'nc=' + Math.round(Math.random() * 10000);   // add cache buster
+		        var typ = pst.indexOf("json") != -1 ? "json" : "xml";
+		        var qry = encodeURIComponent('select * from ' + typ + ' where url="' + pst + '"');
+		        var url = 'http://query.yahooapis.com/v1/public/yql?q=' + qry + '&format=json&callback=SongPollerProcess' + stationId;
+		        jQuery('body').append('<' + 'script src="' + url + '"><' + '/script>');
+		    }
+
+		    function SongPollerStop() {
+		        window.SongPollerStationId = null;
+		    }
+
+		    function SetFavStation(id) {
+		        jQuery('a.fs').removeClass('active');
+		        if (id !== -1) {
+		            jQuery('#station' + id + ' a.fs').addClass('active');
+		            jQuery.cookie("favradio", window.stations[id].name, { expires: 30 });
+		        } else {
+		            jQuery.removeCookie("favradio");
+		        }
+		    }
+
+		    function GetFavStation() {
+		        return jQuery.cookie("favradio");
+		    }
+
+		    function GetFavPosition() {
+		        var p = jQuery.cookie("favpostn");
+		        if (p && (p = p.split(',')).length === 2)
+		            return { x: (p[0] * 1), y: (p[1] * 1) };
+		        return { x: window.screenX, y: window.screenY };
+		    }
+
+		    function SetFavPosition(x, y) {
+		        jQuery.cookie("favpostn", x + ',' + y, { expires: 30 });
+		    }
+
+		    function ProcessSpreadsheet(data) {
+		        var cols = ["name", "country", "website", "social", "stream", "playlist"];
+		        var rows = data.feed.entry.length / cols.length;
+		        var result = [];
+		        for (var row = 1; row < rows; row++) {
+		            var obj = {};
+		            for (var col = 0; col < cols.length; col++) {
+		                obj[cols[col]] = data.feed.entry[(row * cols.length) + col].content.$t;
+		                if (obj[cols[col]] === " ") obj[cols[col]] = "";
+		            }
+		            result.push(obj);
+		        }
+		        return result;
+		    }
+
+		    function GetStationId(name) {
+		        for (var i = 0; i < window.stations.length; i++)
+		            if (window.stations[i].name === name)
+		                return i;
+		        return -1;
+		    }
+
+		    function LoadStations(data) {
+		        window.stations = ProcessSpreadsheet(data);
+		        var stations = jQuery('#stations');
+		        for (var i = 0; i < window.stations.length; i++) {
+		            (function (c) { window['SongPollerProcess' + c] = function (r) { SongPollerProcess(c, r); }; })(i);
+		            var entry = window.stations[i];
+		            if (entry.stream) {
+		                var li = jQuery('<li/>').attr({ 'data-sid': i, 'id': 'station' + i });
+
+		                li.append(jQuery('<span/>').text(SafeHtmlDecode(entry.name)));
+
+		                li.append(jQuery('<a target="_blank" class="fs">&#9733;</a>').attr("href", '#').click(function (e) {
+		                    e.preventDefault();
+		                    SetFavStation(jQuery(this).parents('li:first').attr('data-sid') * 1);
+		                }));
+
+		                if (entry.website)
+		                    li.append(jQuery('<a target="_blank" class="ws"/>').attr("href", entry.website));
+
+		                if (entry.social) {
+		                    var a = jQuery('<a target="_blank" class="sn"/>').attr("href", entry.social);
+		                    a.css('background-image', 'url("http://' + a[0].hostname + '/favicon.ico")');
+		                    li.append(a);
+		                }
+
+		                li.append(jQuery('<a class="pn">&#x25B6;</a>').attr("href", entry.stream).click(function (e) {
+		                    e.preventDefault();
+		                    PlayStream(jQuery(this).parents('li:first').attr('data-sid') * 1);
+		                }));
+
+		                li.append(jQuery('<a class="pp">&#x25A0;</a>').attr("href", entry.stream).click(function (e) {
+		                    e.preventDefault();
+		                    StopStreams();
+		                }));
+
+		                stations.append(li);
+		            }
+		        }
+		        // play favourite station
+		        var fav = GetStationId(GetFavStation());
+		        if (fav !== -1) {
+		            PlayStream(fav);
+		            SetFavStation(fav);
+		        }
+		    }
+
+		    function PlayStream(id) {
+		        var entry = window.stations[id];
+		        StopStreams();
+		        // switch button to stop
+		        jQuery('#station' + id + ' a.pp').show();
+		        jQuery('#station' + id + ' a.pn').hide();
+		        // reset title
+		        jQuery('#nowradio').text(entry.name);
+		        // reset player
+		        jQuery('#current').append(jQuery('<audio id="player" autoplay/>').attr('src', entry.stream));
+		        // reset playlist
+		        jQuery('#playlist').html('&hellip;');
+		        jQuery('#plimage').remove();
+		        // refresh playlist
+		        SongPollerStop();
+		        if (entry.playlist) SongPollerStart(id);
+		    }
+
+		    function StopStreams() {
+		        jQuery('a.pp').hide();
+		        jQuery('a.pn').show();
+		        jQuery('#player').remove();
+		        jQuery('#progress').stop(true).css('width', '100%');
+		    }
+
+		    var OrigPos = { x: 0, y: 0 };
+
+		    function WindowMinimize() {
+		        OrigPos = { x: window.screenX, y: window.screenY };
+		        WindowSize(360, 52);
+		        WindowMove(screen.availWidth, screen.availHeight);
+		        jQuery('body').addClass('minimized');
+		        jQuery('body').removeClass('restored');
+		    }
+
+		    function WindowRestore() {
+		        WindowSize(360, 230);
+		        WindowMove(OrigPos.x, OrigPos.y);
+		        jQuery('body').removeClass('minimized');
+		        jQuery('body').addClass('restored');
+		    }
+
+		    function WindowToggle() {
+		        window[jQuery('body.minimized').length ? 'WindowRestore' : 'WindowMinimize']();
+		    }
+
+		    function SafeHtmlDecode(html) {
+		        var txt = document.createElement("textarea");
+		        txt.innerHTML = html;
+		        return txt.value;
+		    }
+
+		    function ShowWarning(name) {
+		        jQuery('#warning-' + name).show();
+		    }
+
+		    function HideWarning(name) {
+		        jQuery('#warning-' + name).hide();
+		    }
+
+		    function HideWarnings() {
+		        jQuery('.warning').hide();
+		    }
+
+		    jQuery(document).ready(function () {
+		        // cookie hotfix
+		        if (typeof window.external !== 'undefined' && typeof window.external.GetCookie !== 'undefined') {
+		            jQuery.cookie = function (name, value) {
+		                if (typeof value === 'undefined') {
+		                    return window.external.GetCookie(name);
+		                } else {
+		                    window.external.SetCookie(name, value);
+		                }
+		            };
+		            jQuery.removeCookie = function (name) {
+		                window.external.DelCookie(name);
+		            };
+		        }
+
+		        // dragging, context menu and text selection hotfix
+		        document.ondragstart = function () { return false; };
+		        document.oncontextmenu = function () { return false; };
+		        document.onselectstart = function () { return false; };
+
+		        // load stations spreadsheet
+		        // https://docs.google.com/spreadsheet/ccc?key=0Ap5dCq9Q9VDJdG1fTXFSaGpqaGg1eEYxZjFxUVhFSmc
+		        var key = '0Ap5dCq9Q9VDJdG1fTXFSaGpqaGg1eEYxZjFxUVhFSmc';
+		        var qry = '?alt=json-in-script&callback=LoadStations';
+		        var url = 'https://spreadsheets.google.com/feeds/cells/' + key + '/od6/public/basic' + qry;
+		        jQuery('body').append('<' + 'script src="' + url + '"><' + '/script>');
+
+		        // error suppressor (enabled when debug is disabled)
+		        jQuery(document).keypress(function (e) {
+		            if (e.charCode === 100) {
+		                window.IsDebug = !window.IsDebug;
+		                jQuery('#debug')[window.IsDebug ? 'show' : 'hide']();
+		            }
+		        });
+
+		        // handle window dragging
+		        var dragpos = null;
+		        jQuery('#current').mousedown(function (event) {
+		            dragpos = { x: event.pageX, y: event.pageY };
+		        });
+		        jQuery(document).mousemove(function (event) {
+		            if (dragpos) {
+		                WindowMove(
 							event.screenX - dragpos.x,
 							event.screenY - dragpos.y
 						);
-					}
-				});
-				jQuery(window).mouseup(function(){
-					dragpos = false;
-				});
-				
-				// initialize window
-				WindowRestore();
-				var pos = GetFavPosition();
-				WindowMove(pos.x, pos.y);
-			});
+		            }
+		        });
+		        jQuery(window).mouseup(function () {
+		            dragpos = false;
+		        });
+
+		        // initialize window
+		        WindowRestore();
+		        var pos = GetFavPosition();
+		        WindowMove(pos.x, pos.y);
+		    });
 		</script>
 	</head>
 	<body class="restored">
